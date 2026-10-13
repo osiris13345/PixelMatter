@@ -1,32 +1,34 @@
-name: Build Windows EXE
+name: Compilar PixelMatte a EXE
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ "main", "master" ]
   workflow_dispatch:
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Clonar repositorio
+      uses: actions/checkout@v4
 
-    - name: Set up Python
+    - name: Configurar Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
+        cache: 'pip'
 
-    - name: Install dependencies
+    - name: Instalar dependencias
       run: |
         python -m pip install --upgrade pip
-        pip install opencv-python pillow tkinterdnd2 "rembg[cpu]" numpy pyinstaller
+        pip install customtkinter rembg pillow numpy opencv-python pyinstaller
 
-    - name: Build with PyInstaller
+    - name: Compilar con PyInstaller
       run: |
-        pyinstaller --noconsole --onefile --collect-all rembg --collect-all onnxruntime --collect-all tkinterdnd2 PixelMatte.py
+        pyinstaller --noconsole --onefile --name="PixelMatte" --add-data "assets;assets" PixelMatte.py
 
-    - name: Upload EXE Artifact
+    - name: Subir artefacto (Ejecutable)
       uses: actions/upload-artifact@v4
       with:
         name: PixelMatte-Windows-EXE
