@@ -5,64 +5,89 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+env:
+  ENTRY: PixelMatter.py   # archivo principal; abre tu PixelMatte.py y confirma que no tiene el import sin proteger
+
 jobs:
   build-windows:
     runs-on: windows-latest
-
     steps:
-    - name: Clonar repositorio
-      uses: actions/checkout@v4
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
 
-    - name: Configurar Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        cache: 'pip'
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-    - name: Instalar dependencias
-      run: |
-        python -m pip install --upgrade pip
-        pip install customtkinter rembg pillow numpy opencv-python pyinstaller
+      - name: Instalar dependencias
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install customtkinter tkinterdnd2 rembg pillow numpy opencv-python onnxruntime moviepy imageio-ffmpeg pyinstaller
 
-    - name: Compilar con PyInstaller (Windows)
-      run: |
-        pyinstaller --noconsole --onefile --name="PixelMatte" --add-data "assets;assets" --collect-all rembg --collect-all onnxruntime PixelMatte.py
+      - name: Comprobar tkinterdnd2
+        run: python -c "import tkinterdnd2; print('tkinterdnd2 OK')"
 
-    - name: Subir artefacto Windows (.exe)
-      uses: actions/upload-artifact@v4
-      with:
-        name: PixelMatte-Windows-EXE
-        path: dist/PixelMatte.exe
+      - name: Compilar con PyInstaller (Windows)
+        shell: bash
+        run: |
+          pyinstaller --noconsole --onefile --name="PixelMatte" \
+            --add-data "assets;assets" \
+            --collect-all customtkinter \
+            --collect-all tkinterdnd2 \
+            --collect-all imageio_ffmpeg \
+            --collect-all rembg \
+            --collect-all onnxruntime \
+            --hidden-import tkinterdnd2 \
+            "$ENTRY"
+
+      - name: Subir artefacto Windows (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelMatte-Windows-exe
+          path: dist/PixelMatte.exe
 
   build-linux:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Clonar repositorio
-      uses: actions/checkout@v4
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
 
-    - name: Configurar Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        cache: 'pip'
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-    - name: Instalar dependencias del sistema (Tkinter y FFmpeg)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg libsm6 libxext6 python3-tk
+      - name: Instalar dependencias del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libasound2-dev python3-tk tk-dev xclip
 
-    - name: Instalar dependencias de Python
-      run: |
-        python -m pip install --upgrade pip
-        pip install customtkinter rembg pillow numpy opencv-python pyinstaller
+      - name: Instalar dependencias de Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install customtkinter tkinterdnd2 rembg pillow numpy opencv-python onnxruntime moviepy imageio-ffmpeg pyinstaller
 
-    - name: Compilar con PyInstaller (Linux)
-      run: |
-        pyinstaller --noconsole --onefile --name="PixelMatte" --add-data "assets:assets" --collect-all rembg --collect-all onnxruntime PixelMatte.py
+      - name: Comprobar tkinterdnd2
+        run: python -c "import tkinterdnd2; print('tkinterdnd2 OK')"
 
-    - name: Subir artefacto Linux
-      uses: actions/upload-artifact@v4
-      with:
-        name: PixelMatte-Linux-Binary
-        path: dist/PixelMatte
+      - name: Compilar con PyInstaller (Linux)
+        run: |
+          pyinstaller --noconsole --onefile --name="PixelMatte" \
+            --add-data "assets:assets" \
+            --collect-all customtkinter \
+            --collect-all tkinterdnd2 \
+            --collect-all imageio_ffmpeg \
+            --collect-all rembg \
+            --collect-all onnxruntime \
+            --hidden-import tkinterdnd2 \
+            "$ENTRY"
+
+      - name: Subir artefacto Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelMatte-Linux-binary
+          path: dist/PixelMatte
