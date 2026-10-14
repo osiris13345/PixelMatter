@@ -4,7 +4,15 @@ Todas las funciones de acción devuelven (ok: bool, mensaje: str) para que la
 interfaz pueda mostrar el motivo real del error.
 """
 import os
+import sys
 import threading
+
+# Con PyInstaller --noconsole, stdout/stderr valen None y las librerías que
+# imprimen progreso (descarga del modelo de rembg) fallan. Se redirigen.
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
 
 from PIL import Image, ImageOps
 
@@ -69,8 +77,10 @@ def remover_fondo_imagen(input_path, output_path, modelo=MODELO_DEFECTO):
     try:
         try:
             from rembg import remove, new_session
-        except ImportError:
-            return False, "rembg no está instalado.\nInstálalo con: pip install rembg onnxruntime"
+        except (ImportError, SystemExit) as e:
+            # Se muestra el error real: casi nunca es que falte rembg, sino una
+            # dependencia suya (onnxruntime, pymatting, numba...) sin empaquetar.
+            return False, f"No se pudo cargar rembg: {type(e).__name__}: {e}"
 
         modelo = _normalizar_modelo(modelo)
         with _candado:
