@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  ENTRY: PixelMatter.py   # archivo principal; abre tu PixelMatte.py y confirma que no tiene el import sin proteger
+  ENTRY: PixelMatter.py
 
 jobs:
   build-windows:
@@ -25,10 +25,10 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install customtkinter tkinterdnd2 rembg pillow numpy opencv-python onnxruntime moviepy imageio-ffmpeg pyinstaller
+          pip install customtkinter tkinterdnd2 requests rembg pillow numpy opencv-python onnxruntime moviepy imageio-ffmpeg pyinstaller
 
-      - name: Comprobar tkinterdnd2
-        run: python -c "import tkinterdnd2; print('tkinterdnd2 OK')"
+      - name: Comprobar módulos
+        run: python -c "import tkinterdnd2, requests, customtkinter; print('Módulos OK')"
 
       - name: Compilar con PyInstaller (Windows)
         shell: bash
@@ -41,6 +41,7 @@ jobs:
             --collect-all rembg \
             --collect-all onnxruntime \
             --hidden-import tkinterdnd2 \
+            --hidden-import requests \
             "$ENTRY"
 
       - name: Subir artefacto Windows (.exe)
@@ -69,10 +70,10 @@ jobs:
       - name: Instalar dependencias de Python
         run: |
           python -m pip install --upgrade pip
-          pip install customtkinter tkinterdnd2 rembg pillow numpy opencv-python onnxruntime moviepy imageio-ffmpeg pyinstaller
+          pip install customtkinter tkinterdnd2 requests rembg pillow numpy opencv-python onnxruntime moviepy imageio-ffmpeg pyinstaller
 
-      - name: Comprobar tkinterdnd2
-        run: python -c "import tkinterdnd2; print('tkinterdnd2 OK')"
+      - name: Comprobar módulos
+        run: python -c "import tkinterdnd2, requests, customtkinter; print('Módulos OK')"
 
       - name: Compilar con PyInstaller (Linux)
         run: |
@@ -84,6 +85,7 @@ jobs:
             --collect-all rembg \
             --collect-all onnxruntime \
             --hidden-import tkinterdnd2 \
+            --hidden-import requests \
             "$ENTRY"
 
       - name: Subir artefacto Linux
