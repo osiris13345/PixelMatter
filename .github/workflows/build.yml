@@ -2,104 +2,37 @@ name: Compilar PixelMatte (Windows y Linux)
 
 on:
   push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
-
-env:
-  ENTRY: PixelMatter.py
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   build-windows:
     runs-on: windows-latest
+
     steps:
-      - name: Clonar repositorio
-        uses: actions/checkout@v4
+    - name: Copiar repositorio
+      uses: actions/checkout@v4
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      - name: Instalar dependencias
-        shell: bash
-        run: |
-          python -m pip install --upgrade pip
-          pip install customtkinter tkinterdnd2 requests "rembg[cpu]" pillow numpy opencv-python onnxruntime moviepy imageio-ffmpeg pyinstaller
+    - name: Actualizar pip y herramientas
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
 
-      - name: Comprobar módulos
-        run: python -c "import tkinterdnd2, requests, customtkinter; from rembg import remove, new_session; print('Módulos OK')"
+    - name: Instalar dependencias del proyecto
+      run: |
+        pip install customtkinter pillow rembg opencv-python moviepy imageio-ffmpeg tkinterdnd2 requests
 
-      - name: Compilar con PyInstaller (Windows)
-        shell: bash
-        run: |
-          pyinstaller --noconsole --onefile --name="PixelMatte" \
-            --add-data "assets;assets" \
-            --collect-all customtkinter \
-            --collect-all tkinterdnd2 \
-            --collect-all imageio_ffmpeg \
-            --collect-all rembg \
-            --collect-all onnxruntime \
-            --collect-all pymatting \
-            --collect-all numba \
-            --collect-all llvmlite \
-            --collect-all scipy \
-            --collect-all skimage \
-            --hidden-import tkinterdnd2 \
-            --hidden-import requests \
-            "$ENTRY"
+    - name: Compilar con PyInstaller
+      run: |
+        pyinstaller --noconsole --onefile --hidden-import=moviepy --hidden-import=moviepy.video.io.VideoFileClip --hidden-import=imageio_ffmpeg --hidden-import=rembg --hidden-import=onnxruntime PixelMatter_2.py
 
-      - name: Subir artefacto Windows (.exe)
-        uses: actions/upload-artifact@v4
-        with:
-          name: PixelMatte-Windows-exe
-          path: dist/PixelMatte.exe
-
-  build-linux:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Clonar repositorio
-        uses: actions/checkout@v4
-
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Instalar dependencias del sistema
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg libasound2-dev python3-tk tk-dev xclip
-
-      - name: Instalar dependencias de Python
-        run: |
-          python -m pip install --upgrade pip
-          pip install customtkinter tkinterdnd2 requests "rembg[cpu]" pillow numpy opencv-python onnxruntime moviepy imageio-ffmpeg pyinstaller
-
-      - name: Comprobar módulos
-        run: python -c "import tkinterdnd2, requests, customtkinter; from rembg import remove, new_session; print('Módulos OK')"
-
-      - name: Compilar con PyInstaller (Linux)
-        run: |
-          pyinstaller --noconsole --onefile --name="PixelMatte" \
-            --add-data "assets:assets" \
-            --collect-all customtkinter \
-            --collect-all tkinterdnd2 \
-            --collect-all imageio_ffmpeg \
-            --collect-all rembg \
-            --collect-all onnxruntime \
-            --collect-all pymatting \
-            --collect-all numba \
-            --collect-all llvmlite \
-            --collect-all scipy \
-            --collect-all skimage \
-            --hidden-import tkinterdnd2 \
-            --hidden-import requests \
-            "$ENTRY"
-
-      - name: Subir artefacto Linux
-        uses: actions/upload-artifact@v4
-        with:
-          name: PixelMatte-Linux-binary
-          path: dist/PixelMatte
+    - name: Subir artefacto ejecutable Windows
+      uses: actions/upload-artifact@v4
+      with:
+        name: PixelMatte-Windows-Portable
+        path: dist/*.exe
