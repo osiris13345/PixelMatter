@@ -25,14 +25,49 @@ jobs:
 
     - name: Instalar dependencias del proyecto
       run: |
-        pip install customtkinter pillow rembg opencv-python moviepy imageio-ffmpeg tkinterdnd2 requests
+        pip install customtkinter pillow "rembg[cpu]" opencv-python moviepy imageio-ffmpeg tkinterdnd2 requests onnxruntime pyinstaller
 
     - name: Compilar con PyInstaller
       run: |
-        pyinstaller --noconsole --onefile --hidden-import=moviepy --hidden-import=moviepy.video.io.VideoFileClip --hidden-import=imageio_ffmpeg --hidden-import=rembg --hidden-import=onnxruntime PixelMatter_2.py
+        python -m PyInstaller --noconsole --onefile --name PixelMatte --add-data "assets;assets" --collect-all customtkinter --collect-all tkinterdnd2 --collect-all rembg --collect-all imageio_ffmpeg --hidden-import=moviepy --hidden-import=moviepy.video.io.VideoFileClip --hidden-import=onnxruntime PixelMatter.py
 
     - name: Subir artefacto ejecutable Windows
       uses: actions/upload-artifact@v4
       with:
         name: PixelMatte-Windows-Portable
         path: dist/*.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Copiar repositorio
+      uses: actions/checkout@v4
+
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Instalar librerias del sistema
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-tk libgl1
+
+    - name: Actualizar pip y herramientas
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+
+    - name: Instalar dependencias del proyecto
+      run: |
+        pip install customtkinter pillow "rembg[cpu]" opencv-python moviepy imageio-ffmpeg tkinterdnd2 requests onnxruntime pyinstaller
+
+    - name: Compilar con PyInstaller
+      run: |
+        python -m PyInstaller --noconsole --onefile --name PixelMatte --add-data "assets:assets" --collect-all customtkinter --collect-all tkinterdnd2 --collect-all rembg --collect-all imageio_ffmpeg --hidden-import=moviepy --hidden-import=moviepy.video.io.VideoFileClip --hidden-import=onnxruntime PixelMatter.py
+
+    - name: Subir artefacto ejecutable Linux
+      uses: actions/upload-artifact@v4
+      with:
+        name: PixelMatte-Linux
+        path: dist/PixelMatte
