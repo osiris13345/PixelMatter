@@ -26,13 +26,15 @@ _SIN_DITHER = getattr(Image, "Dither", Image).NONE
 # Formato de salida -> extensión
 FORMATOS_SALIDA = {"PNG": ".png", "JPG": ".jpg", "WEBP": ".webp"}
 
-# Modelos de rembg disponibles: nombre -> descripción (la interfaz los muestra tal cual).
+# Modelos de rembg disponibles con sus pesos y niveles de precisión.
 MODELOS_REMBG = {
-    "u2netp": "Ultra-ligero: Más rápido, menos preciso (ideal para pruebas).",
-    "u2net": "Estándar: Buen balance entre velocidad y precisión.",
-    "isnet-general-use": "Alta precisión: Más lento, mayor calidad en los bordes.",
+    "isnet-general-use": "Alta precisión (~170 MB): Mayor calidad en los bordes.",
+    "birefnet-general-lite": "Muy alta precisión (~210 MB): Excelente definición de detalles.",
+    "u2net": "Estándar (~170 MB): Buen balance entre velocidad y precisión.",
+    "u2netp": "Ultra-ligero (~4 MB): Más rápido, menor precisión.",
+    "birefnet-general": "Máxima precisión (~970 MB): El más potente, lento y pesado.",
 }
-MODELO_DEFECTO = "u2netp"
+MODELO_DEFECTO = "isnet-general-use"
 
 # Cachea las sesiones de rembg: cargar el modelo es lo más lento del proceso.
 _sesiones = {}
@@ -68,18 +70,16 @@ def cargar_miniatura(path, tam=(220, 120)):
 
 
 def _normalizar_modelo(modelo):
-    """Acepta 'u2net' o etiquetas antiguas como 'u2net (Pro / HD)'. Desconocido -> por defecto."""
+    """Acepta 'u2net' o etiquetas antiguas. Desconocido -> por defecto."""
     nombre = (modelo or "").strip().split(" ")[0]
     return nombre if nombre in MODELOS_REMBG else MODELO_DEFECTO
 
 
-def remover_fondo_imagen(input_path, output_path, modelo=MODELO_DEFECTO):
+def remover_fondo_imagen(input_path, output_path, modelo=MODELO_DEFECTO, alpha_matting=False, fg_thresh=240, bg_thresh=10, erode_size=10):
     try:
         try:
             from rembg import remove, new_session
         except (ImportError, SystemExit) as e:
-            # Se muestra el error real: casi nunca es que falte rembg, sino una
-            # dependencia suya (onnxruntime, pymatting, numba...) sin empaquetar.
             return False, f"No se pudo cargar rembg: {type(e).__name__}: {e}"
 
         modelo = _normalizar_modelo(modelo)
@@ -90,10 +90,19 @@ def remover_fondo_imagen(input_path, output_path, modelo=MODELO_DEFECTO):
 
         with Image.open(input_path) as img:
             img = ImageOps.exif_transpose(img).convert("RGBA")
-            resultado = remove(img, session=sesion)
+            # Aplica Alpha Matting y post-procesamiento de máscara para evitar recortes erróneos
+            resultado = remove(
+                img,
+                session=sesion,
+                post_process_mask=True,
+                alpha_matting=alpha_matting,
+                alpha_matting_foreground_threshold=int(fg_thresh),
+                alpha_matting_background_threshold=int(bg_thresh),
+                alpha_matting_erode_size=int(erode_size)
+            )
 
         resultado.save(output_path, "PNG")
-        return True, "Fondo removido correctamente."
+        return True, f"Fondo removido correctamente con el modelo '{modelo}'."
     except Exception as e:
         return False, f"No se pudo quitar el fondo: {e}"
 
